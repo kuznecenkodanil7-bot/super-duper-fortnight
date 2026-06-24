@@ -25,16 +25,41 @@ jobs:
         with:
           gradle-version: 8.9
 
-      - name: Show files
-        run: ls -la
+      - name: Show repository files
+        run: |
+          echo "ROOT FILES:"
+          ls -la
+          echo ""
+          echo "ALL FOLDERS:"
+          find . -maxdepth 4 -type d
+
+      - name: Find Android project
+        run: |
+          ANDROID_DIR=$(find . -type d -name "android-app" | head -n 1)
+
+          if [ -z "$ANDROID_DIR" ]; then
+            echo "ERROR: android-app folder not found"
+            echo "Repository structure:"
+            find . -maxdepth 5 -type d
+            exit 1
+          fi
+
+          echo "Found Android project: $ANDROID_DIR"
+          echo "ANDROID_DIR=$ANDROID_DIR" >> $GITHUB_ENV
 
       - name: Build APK
         run: |
-          cd PhonePcMessenger_FIXED/android-app
-          gradle assembleDebug
+          cd "$ANDROID_DIR"
+
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleDebug
+          else
+            gradle assembleDebug
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: PhonePcMessenger-debug-apk
-          path: PhonePcMessenger_FIXED/android-app/app/build/outputs/apk/debug/app-debug.apk
+          path: "**/app/build/outputs/apk/debug/*.apk"
